@@ -158,7 +158,10 @@ class RSAPage(BasePage):
         """Convert a character to a number for encryption with RSA."""
         if char == ' ':
             return 26
-        return ord(char) - ord('A')
+        if char.isalpha():
+            char = char.lower()
+            return ord(char) - ord('A') - 5
+        return
 
     @staticmethod
     def number_to_char(number):
@@ -173,10 +176,10 @@ class RSAPage(BasePage):
     @measure_time
     @profile_cpu
     def rsa_encrypt(self, pk, plaintext):
-        """Encrypt a plaintext string using the RSA public key (pk)."""
         key, n = pk
-        numbers = [self.char_to_number(char) for char in plaintext.upper()]  # Convert plaintext to uppercase
-        return [pow(number, key, n) for number in numbers]
+        numbers = [self.char_to_number(char) for char in plaintext]  # Convert every character, including spaces
+        return [pow(number, key, n) for number in numbers]  # Encrypt all numbers
+
 
 
 
@@ -184,11 +187,9 @@ class RSAPage(BasePage):
     @measure_time
     @profile_cpu
     def rsa_decrypt(self, pk, ciphertext):
-        """Decrypt an encrypted list of numbers using the RSA private key (pk)."""
         key, n = pk
         numbers = [pow(number, key, n) for number in ciphertext]
-        return ''.join(self.number_to_char(number % 26) for number in numbers)
-
+        return ''.join(self.number_to_char(number % 27) for number in numbers)  # Use 27 to include 0 for space
 
 
 
@@ -261,9 +262,9 @@ class RSAPage(BasePage):
     def save_file(self, filedata, operation):
         operation_suffix = 'enc' if operation == 'encrypt' else 'dec'
         #filepath = filedialog.asksaveasfilename(defaultextension=f"-rsa.{operation_suffix}")
-        filepath = filedialog.asksaveasfilename(defaultextension=f"-rsa.{operation_suffix}",filetypes=[("Encrypted files", "*.enc"), ("All files", "*.*")])
+        filepath = filedialog.asksaveasfilename(defaultextension=f"-rsa.{operation_suffix}",filetypes=[("Encrypted files", "*.enc"), ("Decrypted files", "*.dec"), ("All files", "*.*")])
         if filepath:
-            with open(filepath, 'wb' if isinstance(filedata, bytes) else 'w') as file:
+            with open(filepath, 'wb') as file: # if isinstance(filedata, bytes) else 'w'
                 file.write(filedata)
             self.text_output.delete("1.0", tk.END)
             self.text_output.insert("1.0", filepath)

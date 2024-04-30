@@ -1,23 +1,15 @@
-
-# d = 52203292265329821477201215331647767385
-# e = 65537
-# n = 109658872566201497189314566136483333067
-
-
 import os
 import time
 import binascii
 import tkinter as tk
-from tkinter import messagebox, filedialog, Frame, Label, Button, Entry, Radiobutton
-from tkinter.scrolledtext import ScrolledText
+from tkinter import messagebox, filedialog
 import logging
 import cProfile
 import pstats
 import functools
-from memory_profiler import profile
 from base import BasePage
 
-logging.basicConfig(filename='rsa_performance.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+logging.basicConfig(filename='des_performance.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 def measure_time(func):
     @functools.wraps(func)
@@ -338,19 +330,22 @@ class TripleDESPage(BasePage):
 
     def pad_binary(self, data):
         """Add padding to ensure the data length is a multiple of 64 bits."""
-        padding_length = (64 - len(data) % 64) % 64
-        if padding_length == 0 and len(data) % 64 == 0:
-            return data, 0  # Return early if no padding is necessary and already aligned
-        padding = '0' * padding_length  # Pad with zeros (you might choose to handle this differently)
+        padding_length = 8 - (len(data) // 8) % 8
+        padding = '{:08b}'.format(padding_length) * padding_length
         padded_data = data + padding
-        print(f"Padding to add: {padding} ({padding_length} bits)")
-        return padded_data, padding_length
+        return padded_data, padding_length * 8
 
 
         # this function is whack
     def unpad_binary(self, padded_data):
         """Return data without any modification, as no padding is applied."""
-        return padded_data
+        padding_length = int(padded_data[-8:], 2)
+        # Ensure that all the padding bits are what they should be
+        expected_padding = '{:08b}'.format(padding_length) * padding_length
+        if padded_data[-padding_length * 8:] != expected_padding:
+            raise ValueError("Invalid padding detected")
+        # Remove the padding
+        return padded_data[:-padding_length * 8]
 
 
     def permute(self, input_data, table):
